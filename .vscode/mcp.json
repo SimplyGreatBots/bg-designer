@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "bgg": {
+      "command": "C:/Users/camer/OneDrive/Desktop/Simply Great Bots/mcp-servers/bgg-mcp/build/bgg-mcp.exe",
+      "args": []
+    }
+  }
+}
