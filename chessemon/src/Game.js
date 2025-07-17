@@ -183,13 +183,30 @@ function canMoveTo(G, fromRow, fromCol, toRow, toCol, piece) {
     case 'king':
       return Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
     case 'pawn':
-      // Pawn moves forward (toward opponent)
+      // Pawn moves forward horizontally (toward opponent's home zone)
+      // Player 0 moves right (positive dx), Player 1 moves left (negative dx)
       const direction = piece.player === '0' ? 1 : -1;
-      if (dx === 0 && dy === direction) return !targetPiece; // Forward move
-      if (Math.abs(dx) === 1 && dy === direction && targetPiece) return true; // Capture
+      const isForwardMove = dy === 0 && dx === direction;
+      const isDiagonalCapture = Math.abs(dy) === 1 && dx === direction && targetPiece;
+      const isFirstMoveDouble = dy === 0 && dx === 2 * direction && !piece.abilities.hasMoved && !targetPiece;
+      
+      console.log('Pawn move check:', {
+        from: [fromRow, fromCol],
+        to: [toRow, toCol],
+        dx, dy, direction,
+        player: piece.player,
+        isForwardMove,
+        isDiagonalCapture,
+        isFirstMoveDouble,
+        hasMoved: piece.abilities.hasMoved,
+        targetPiece: !!targetPiece
+      });
+      
+      if (isForwardMove) return !targetPiece; // Forward move
+      if (isDiagonalCapture) return true; // Diagonal capture
       // First move can be 2 squares
-      if (dx === 0 && dy === 2 * direction && !piece.abilities.hasMoved && !targetPiece) {
-        return !getPieceAt(G, fromRow + direction, fromCol);
+      if (isFirstMoveDouble) {
+        return !getPieceAt(G, fromRow, fromCol + direction);
       }
       return false;
     case 'knight':
@@ -229,9 +246,23 @@ function isPathClear(G, fromRow, fromCol, toRow, toCol) {
 const movePiece = ({ G, ctx, playerID }, fromRow, fromCol, toRow, toCol) => {
   const piece = getPieceAt(G, fromRow, fromCol);
   
-  if (!piece || piece.player !== playerID) return INVALID_MOVE;
-  if (piece.abilities.hasMoved) return INVALID_MOVE;
-  if (!canMoveTo(G, fromRow, fromCol, toRow, toCol, piece)) return INVALID_MOVE;
+  if (!piece || piece.player !== playerID) {
+    console.log('Move failed: No piece or wrong player', { piece, playerID });
+    return INVALID_MOVE;
+  }
+  if (piece.abilities.hasMoved) {
+    console.log('Move failed: Piece already moved this turn');
+    return INVALID_MOVE;
+  }
+  if (!canMoveTo(G, fromRow, fromCol, toRow, toCol, piece)) {
+    console.log('Move failed: Invalid destination', { 
+      from: [fromRow, fromCol], 
+      to: [toRow, toCol], 
+      pieceType: piece.type,
+      player: piece.player 
+    });
+    return INVALID_MOVE;
+  }
   
   const targetPiece = getPieceAt(G, toRow, toCol);
   
