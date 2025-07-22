@@ -5,6 +5,27 @@ description: 'PowerShell cmdlet and scripting best practices based on Microsoft 
 
 # PowerShell Cmdlet Development Guidelines
 
+## PowerShell Command Chaining
+
+- **Chaining Commands:**
+  - PowerShell does **not** support `&&` or `||` for command chaining as in Bash or CMD.
+  - Use the `;` character to separate commands on a single line (e.g., `Command1; Command2`).
+  - For conditional execution, use `if` statements or check `$?` (the last command's success):
+    - Example: `Command1; if ($?) { Command2 }`
+  - Do **not** use `&&` or `||` in scripts or examples; always use `;` or proper PowerShell logic.
+
+### Example
+
+```powershell
+# Run two commands sequentially
+Get-Process; Get-Service
+
+# Run Command2 only if Command1 succeeds
+Command1; if ($?) { Command2 }
+```
+
+> **Best Practice:** When writing or generating PowerShell scripts, always use `;` for chaining and avoid `&&`/`||`. This ensures compatibility and prevents syntax errors.
+
 This guide provides PowerShell-specific instructions to help GitHub Copilot generate idiomatic, safe, and maintainable scripts. It aligns with Microsoft’s PowerShell cmdlet development guidelines.
 
 ## Naming Conventions

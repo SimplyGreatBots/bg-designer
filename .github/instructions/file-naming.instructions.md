@@ -1,6 +1,11 @@
-# File Naming Conventions
+---
+applyTo: '**/'
+description: 'Standardized file and directory naming conventions for all projects.'
+---
 
-Standardized file and directory naming patterns for the Chess project.
+# Standard File Naming Conventions
+
+These guidelines define standardized file and directory naming patterns for all projects to ensure clarity, consistency, and maintainability.
 
 ## Core Principles
 
@@ -8,108 +13,62 @@ Standardized file and directory naming patterns for the Chess project.
 File names should clearly indicate their content and purpose without requiring additional context.
 
 **Good Examples:**
-- `move-validation-system.md`
-- `piece-movement-mechanics.md`
-- `tournament-tiebreak-rules.md`
+- `user-profile-service.js`
+- `data-migration-script.sql`
+- `api-client.test.ts`
 
 **Poor Examples:**
-- `system1.md`
-- `mechanics.md`
-- `rules.md`
+- `file1.js`
+- `misc.txt`
+- `temp.md`
 
 ### Kebab-Case Format
-All file names use lowercase letters with hyphens separating words.
+All file names should use lowercase letters with hyphens separating words, unless a language or framework requires a different convention (e.g., `PascalCase` for C# classes).
 
-**Format:** `word1-word2-word3.md`
+**Format:** `word1-word2-word3.ext`
 
 ### Consistent Categorization
-Include category indicators when helpful for organization and clarity.
+Include category or type indicators in file names when helpful for organization and clarity.
 
 ## File Naming Patterns
 
-### Systems Directory
-- **Pattern:** `[descriptor]-[system-type].md`
-- **Examples:**
-  - `core-game-system.md`
-  - `move-validation-system.md`
-  - `turn-structure-system.md`
-
-### Mechanics Directory
-- **Pattern:** `[action]-[mechanics-type].md`
-- **Examples:**
-  - `piece-movement-mechanics.md`
-  - `castling-mechanics.md`
-  - `pawn-promotion-mechanics.md`
-
-### Rules Directory
-- **Pattern:** `[scope]-[rule-category].md`
-- **Examples:**
-  - `basic-turn-rules.md`
-  - `tournament-tiebreak-rules.md`
-  - `draw-conditions-rules.md`
-
-### Content Directory
-- **Pattern:** `[name]-[content-type].md`
-- **Examples:**
-  - `white-queen-piece.md`
-  - `standard-board-setup.md`
-  - `en-passant-example.md`
-
-### Templates Directory
-- **Pattern:** `[content-type]-template.md`
-- **Examples:**
-  - `system-template.md`
-  - `mechanic-template.md`
-  - `piece-template.md`
-
-### Guides Directory
-- **Pattern:** `[topic]-guide.md` or `[topic]-standards.md`
-- **Examples:**
-  - `contributing-guide.md`
-  - `markdown-standards.md`
-  - `cross-reference-guide.md`
+- **Configuration Files:**
+  - Pattern: `[tool]-config.ext` (e.g., `jest-config.js`, `webpack-config.js`)
+- **Test Files:**
+  - Pattern: `[module]-test.js` or `[module].test.js` (e.g., `user-service.test.js`)
+- **Scripts:**
+  - Pattern: `[purpose]-script.ext` (e.g., `data-migration-script.sql`)
+- **Templates:**
+  - Pattern: `[type]-template.ext` (e.g., `email-template.html`)
+- **Guides/Docs:**
+  - Pattern: `[topic]-guide.md`, `[topic]-standards.md` (e.g., `contributing-guide.md`)
 
 ## Directory Naming
 
-### Primary Directories
-Use clear, plural nouns for main categories:
-- `systems/`
-- `mechanics/`
-- `rules/`
-- `content/`
-- `templates/`
-
-### Subdirectories
-Use descriptive names that indicate the subcategory:
-- `content/pieces/`
-- `rules/tournament/`
-- `systems/core/`
+- Use clear, plural nouns for main categories (e.g., `services/`, `models/`, `tests/`, `docs/`, `scripts/`).
+- Use descriptive names for subdirectories to indicate their content or purpose (e.g., `docs/api/`, `tests/integration/`).
 
 ## Special Files
 
-### README Files
-Always name directory overview files `README.md` for automatic display in git repositories and markdown viewers.
-
-### Template Files
-Always end template file names with `-template.md` to clearly identify their purpose.
+- **README Files:**
+  - Always name directory overview files `README.md` for automatic display in git repositories and markdown viewers.
+- **Template Files:**
+  - Always end template file names with `-template.ext` to clearly identify their purpose.
 
 ## Common Mistakes to Avoid
 
-### Ambiguous Names
-- ❌ `mechanics.md` (too generic)
-- ✅ `castling-mechanics.md` (specific and clear)
-
-### Inconsistent Casing
-- ❌ `Move_Validation_System.md`
-- ✅ `move-validation-system.md`
-
-### Missing Context
-- ❌ `queen.md` (unclear what type of content)
-- ✅ `white-queen-piece.md` (clear content type)
-
-### Overly Long Names
-- ❌ `advanced-tournament-competitive-play-tiebreak-and-scoring-rules.md`
-- ✅ `tournament-tiebreak-rules.md`
+- **Ambiguous Names:**
+  - ❌ `misc.md` (too generic)
+  - ✅ `error-handling-guide.md` (specific and clear)
+- **Inconsistent Casing:**
+  - ❌ `UserProfileService.js`
+  - ✅ `user-profile-service.js`
+- **Missing Context:**
+  - ❌ `main.js` (unclear what module or feature)
+  - ✅ `auth-main.js` (clear context)
+- **Overly Long Names:**
+  - ❌ `very-long-and-unnecessarily-descriptive-file-name-for-user-profile-management.js`
+  - ✅ `user-profile-service.js`
 
 ## Important Migration Guidelines
 
