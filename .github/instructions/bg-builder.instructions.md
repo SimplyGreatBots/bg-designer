@@ -59,3 +59,20 @@ This document defines the specific instructions for the `bg-builder` chat mode, 
    - Jest configuration must include: `"testEnvironment": "jsdom"`, `"setupFilesAfterEnv": ["<rootDir>/src/setupTests.js"]`, and `"moduleNameMapper": {"\\.(css|less|scss|sass)$": "identity-obj-proxy"}`.
    - Create `.babelrc` with presets for env and react: `{"presets": [["@babel/preset-env", {"targets": {"node": "current"}}], ["@babel/preset-react", {"runtime": "automatic"}]]}`.
    - Always verify tests run successfully with `npm test` before considering implementation complete.
+
+7. **Babel Configuration (REQUIRED FOR ALL GAMES):**
+   - Always create a `.babelrc` file in the `game/` folder to configure JavaScript/JSX transpilation.
+   - Standard configuration for boardgame.io projects:
+     ```json
+     {
+       "presets": [
+         ["@babel/preset-env", { "targets": { "node": "current" } }],
+         ["@babel/preset-react", { "runtime": "automatic" }]
+       ]
+     }
+     ```
+   - `@babel/preset-env`: Transforms modern JavaScript features for browser compatibility.
+   - `@babel/preset-react`: Handles JSX transformation and React component processing.
+   - `"runtime": "automatic"`: Uses React 17+ JSX runtime (no need to import React in JSX files).
+   - `"targets": { "node": "current" }`: Optimizes transpilation for your current Node.js version.
+   - This configuration works with Parcel bundler and is essential for React + boardgame.io development.
