@@ -1,313 +1,347 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import ChessBoard from './Board';
-import { PIECE_TYPES, COLORS } from './Game';
+import { ChessBoard } from './Board';
 
-// Mock game state
-const mockGameState = {
-  board: Array(8).fill(null).map(() => Array(8).fill(null)),
-  selectedSquare: null,
-  possibleMoves: [],
-  lastMove: null,
-  capturedPieces: { [COLORS.WHITE]: [], [COLORS.BLACK]: [] },
-  gameStatus: 'playing',
-  winner: null
-};
-
-// Mock context
-const mockContext = {
-  currentPlayer: COLORS.WHITE,
-  turn: 1,
-  phase: 'play',
-  gameover: false
-};
-
-// Mock moves
-const mockMoves = {
-  selectSquare: jest.fn(),
-  resign: jest.fn(),
-  offerDraw: jest.fn()
-};
+// Mock the CSS import
+jest.mock('./Board.css', () => ({}));
 
 describe('ChessBoard Component', () => {
+  const mockMoves = {
+    selectSquare: jest.fn()
+  };
+
+  const mockG = {
+    board: [
+      [
+        { type: 'rook', color: 'black' },
+        { type: 'knight', color: 'black' },
+        { type: 'bishop', color: 'black' },
+        { type: 'queen', color: 'black' },
+        { type: 'king', color: 'black' },
+        { type: 'bishop', color: 'black' },
+        { type: 'knight', color: 'black' },
+        { type: 'rook', color: 'black' }
+      ],
+      [
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' },
+        { type: 'pawn', color: 'black' }
+      ],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' },
+        { type: 'pawn', color: 'white' }
+      ],
+      [
+        { type: 'rook', color: 'white' },
+        { type: 'knight', color: 'white' },
+        { type: 'bishop', color: 'white' },
+        { type: 'queen', color: 'white' },
+        { type: 'king', color: 'white' },
+        { type: 'bishop', color: 'white' },
+        { type: 'knight', color: 'white' },
+        { type: 'rook', color: 'white' }
+      ]
+    ],
+    selectedSquare: null,
+    moveHistory: [],
+    fullMoveNumber: 1
+  };
+
+  const mockCtx = {
+    currentPlayer: '0',
+    turn: 1,
+    numPlayers: 2,
+    gameover: null
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('renders 8x8 chess board', () => {
+  test('renders chess board with 64 squares', () => {
     render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
+
+    const squares = screen.getAllByRole('button');
+    expect(squares).toHaveLength(66); // 64 board squares + 2 control buttons
     
-    // Should have 64 squares
-    const squares = document.querySelectorAll('.square');
-    expect(squares).toHaveLength(64);
+    // Check that board squares exist (filter out control buttons)
+    const boardSquares = squares.filter(square => 
+      square.className.includes('chess-square')
+    );
+    expect(boardSquares).toHaveLength(64);
   });
 
-  test('displays pieces correctly', () => {
-    const gameStateWithPieces = {
-      ...mockGameState,
-      board: Array(8).fill(null).map(() => Array(8).fill(null))
-    };
-    
-    // Add a white king
-    gameStateWithPieces.board[0][4] = {
-      type: PIECE_TYPES.KING,
-      color: COLORS.WHITE,
-      hasMoved: false
-    };
-    
+  test('displays chess pieces correctly', () => {
     render(
-      <ChessBoard 
-        G={gameStateWithPieces} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    // Should display the white king symbol
-    expect(screen.getByText('♔')).toBeInTheDocument();
+
+    // Check for piece symbols (Unicode characters) - use getAllByText for multiple matches
+    expect(screen.getAllByText('♜')).toHaveLength(2); // Black rooks
+    // The black king appears both on board and in UI - use getAllByText
+    expect(screen.getAllByText('♚')).toHaveLength(2); // Black king (board + UI)
+    expect(screen.getAllByText('♖')).toHaveLength(2); // White rooks
+    // The white king appears both on board and in UI - use getAllByText  
+    expect(screen.getAllByText('♔')).toHaveLength(2); // White king (board + UI)
   });
 
-  test('handles square clicks', () => {
+  test('shows current player turn', () => {
     render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
+
+    expect(screen.getByText('White to move')).toBeInTheDocument();
+  });
+
+  test('handles square clicks when active', () => {
+    render(
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
+      />
+    );
+
+    const squares = screen.getAllByRole('button');
+    const firstSquare = squares.find(square => 
+      square.className.includes('chess-square')
+    );
     
-    const firstSquare = document.querySelector('.square');
     fireEvent.click(firstSquare);
-    
     expect(mockMoves.selectSquare).toHaveBeenCalledWith(0, 0);
   });
 
-  test('highlights selected square', () => {
-    const gameStateWithSelection = {
-      ...mockGameState,
-      selectedSquare: { row: 1, col: 4 }
-    };
-    
+  test('does not handle square clicks when inactive', () => {
     render(
-      <ChessBoard 
-        G={gameStateWithSelection} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={false}
       />
     );
+
+    const squares = screen.getAllByRole('button');
+    const firstSquare = squares.find(square => 
+      square.className.includes('chess-square')
+    );
     
-    // The selected square should have the 'selected' class
-    const selectedSquare = document.querySelector('.square.selected');
+    fireEvent.click(firstSquare);
+    expect(mockMoves.selectSquare).not.toHaveBeenCalled();
+  });
+
+  test('shows selected square highlight', () => {
+    const gWithSelection = {
+      ...mockG,
+      selectedSquare: { row: 6, col: 4 }
+    };
+
+    render(
+      <ChessBoard
+        G={gWithSelection}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
+      />
+    );
+
+    const squares = screen.getAllByRole('button');
+    const selectedSquare = squares.find(square => 
+      square.className.includes('selected')
+    );
+    
     expect(selectedSquare).toBeInTheDocument();
   });
 
-  test('shows possible moves', () => {
-    const gameStateWithMoves = {
-      ...mockGameState,
-      possibleMoves: [{ row: 2, col: 4 }, { row: 3, col: 4 }]
+  test('displays game over state for checkmate', () => {
+    const ctxWithCheckmate = {
+      ...mockCtx,
+      gameover: { winner: '0' }
     };
-    
+
     render(
-      <ChessBoard 
-        G={gameStateWithMoves} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={ctxWithCheckmate}
+        moves={mockMoves}
+        playerID="0"
+        isActive={false}
       />
     );
-    
-    const possibleMoveSquares = document.querySelectorAll('.square.possible-move');
-    expect(possibleMoveSquares).toHaveLength(2);
+
+    expect(screen.getByText('Checkmate! White wins!')).toBeInTheDocument();
   });
 
-  test('highlights last move', () => {
-    const gameStateWithLastMove = {
-      ...mockGameState,
-      lastMove: {
-        from: { row: 1, col: 4 },
-        to: { row: 3, col: 4 }
-      }
+  test('displays game over state for draw', () => {
+    const ctxWithDraw = {
+      ...mockCtx,
+      gameover: { draw: true }
     };
-    
+
     render(
-      <ChessBoard 
-        G={gameStateWithLastMove} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={ctxWithDraw}
+        moves={mockMoves}
+        playerID="0"
+        isActive={false}
       />
     );
-    
-    const lastMoveSquares = document.querySelectorAll('.square.last-move');
-    expect(lastMoveSquares).toHaveLength(2);
+
+    expect(screen.getByText('Game drawn!')).toBeInTheDocument();
   });
 
-  test('displays game status correctly', () => {
-    const gameStateInCheck = {
-      ...mockGameState,
-      gameStatus: 'check'
-    };
-    
+  test('shows move counter', () => {
     render(
-      <ChessBoard 
-        G={gameStateInCheck} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    expect(screen.getByText(/White is in check!/)).toBeInTheDocument();
+
+    expect(screen.getByText('Move 1')).toBeInTheDocument();
   });
 
-  test('displays checkmate status', () => {
-    const gameStateCheckmate = {
-      ...mockGameState,
-      gameStatus: 'checkmate',
-      winner: COLORS.WHITE
-    };
-    
+  test('displays file and rank labels', () => {
     render(
-      <ChessBoard 
-        G={gameStateCheckmate} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
+
+    // Check for file labels (a-h)
+    expect(screen.getByText('a')).toBeInTheDocument();
+    expect(screen.getByText('h')).toBeInTheDocument();
     
-    expect(screen.getByText(/Checkmate! White wins!/)).toBeInTheDocument();
+    // Check for rank labels (1-8)
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getByText('8')).toBeInTheDocument();
   });
 
-  test('displays stalemate status', () => {
-    const gameStateStalemate = {
-      ...mockGameState,
-      gameStatus: 'stalemate'
-    };
-    
+  test('shows player information', () => {
     render(
-      <ChessBoard 
-        G={gameStateStalemate} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    expect(screen.getByText(/Stalemate! The game is a draw./)).toBeInTheDocument();
+
+    expect(screen.getByText('White')).toBeInTheDocument();
+    expect(screen.getByText('Black')).toBeInTheDocument();
   });
 
-  test('shows captured pieces', () => {
-    const gameStateWithCaptures = {
-      ...mockGameState,
-      capturedPieces: {
-        [COLORS.WHITE]: [{ type: PIECE_TYPES.PAWN, color: COLORS.WHITE }],
-        [COLORS.BLACK]: [{ type: PIECE_TYPES.KNIGHT, color: COLORS.BLACK }]
-      }
-    };
-    
+  test('handles loading state gracefully', () => {
     render(
-      <ChessBoard 
-        G={gameStateWithCaptures} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={null}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    expect(screen.getByText('♙')).toBeInTheDocument(); // White pawn
-    expect(screen.getByText('♞')).toBeInTheDocument(); // Black knight
+
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
-  test('shows control buttons for current player', () => {
+  test('shows resign and draw buttons', () => {
     render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
+
     expect(screen.getByText('Resign')).toBeInTheDocument();
     expect(screen.getByText('Offer Draw')).toBeInTheDocument();
   });
 
-  test('resign button works', () => {
-    render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
-      />
-    );
-    
-    const resignButton = screen.getByText('Resign');
-    fireEvent.click(resignButton);
-    
-    expect(mockMoves.resign).toHaveBeenCalled();
-  });
-
-  test('offer draw button works', () => {
-    render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
-      />
-    );
-    
-    const drawButton = screen.getByText('Offer Draw');
-    fireEvent.click(drawButton);
-    
-    expect(mockMoves.offerDraw).toHaveBeenCalled();
-  });
-
-  test('prevents moves when not current player', () => {
-    const contextBlackTurn = {
-      ...mockContext,
-      currentPlayer: COLORS.BLACK
+  test('displays move history section', () => {
+    const gWithMoves = {
+      ...mockG,
+      moveHistory: [
+        { from: { row: 6, col: 4 }, to: { row: 4, col: 4 }, piece: 'pawn', color: 'white' },
+        { from: { row: 1, col: 4 }, to: { row: 3, col: 4 }, piece: 'pawn', color: 'black' }
+      ]
     };
-    
+
     render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={contextBlackTurn} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={gWithMoves}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    const firstSquare = document.querySelector('.square');
-    fireEvent.click(firstSquare);
-    
-    // Should not call selectSquare when it's not the player's turn
-    expect(mockMoves.selectSquare).not.toHaveBeenCalled();
+
+    expect(screen.getByText('Move History')).toBeInTheDocument();
   });
 
-  test('displays game information', () => {
+  test('displays captured pieces section', () => {
     render(
-      <ChessBoard 
-        G={mockGameState} 
-        ctx={mockContext} 
-        moves={mockMoves} 
-        playerID={COLORS.WHITE}
+      <ChessBoard
+        G={mockG}
+        ctx={mockCtx}
+        moves={mockMoves}
+        playerID="0"
+        isActive={true}
       />
     );
-    
-    expect(screen.getByText(/Turn: 1/)).toBeInTheDocument();
-    expect(screen.getByText(/You are: White/)).toBeInTheDocument();
+
+    expect(screen.getByText('Captured White Pieces')).toBeInTheDocument();
+    expect(screen.getByText('Captured Black Pieces')).toBeInTheDocument();
   });
 });

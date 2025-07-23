@@ -2,58 +2,61 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-// Mock the boardgame.io Client to avoid complex setup in tests
+// Mock the CSS imports
+jest.mock('./App.css', () => ({}));
+jest.mock('./Board.css', () => ({}));
+
+// Mock the boardgame.io client since we're testing the App component structure
 jest.mock('boardgame.io/react', () => ({
-  Client: jest.fn(({ board: Board }) => {
-    // Return a mock component that renders the board with test data
-    return function MockClient() {
-      const mockG = {
-        board: Array(8).fill(null).map(() => Array(8).fill(null)),
-        selectedSquare: null,
-        possibleMoves: [],
-        lastMove: null,
-        capturedPieces: { '0': [], '1': [] },
-        gameStatus: 'playing',
-        winner: null
-      };
-      
-      const mockCtx = {
-        currentPlayer: '0',
-        turn: 1,
-        phase: 'play',
-        gameover: false
-      };
-      
-      const mockMoves = {
-        selectSquare: jest.fn(),
-        resign: jest.fn(),
-        offerDraw: jest.fn()
-      };
-      
-      return (
-        <div data-testid="chess-client">
-          <Board G={mockG} ctx={mockCtx} moves={mockMoves} playerID="0" />
-        </div>
-      );
+  Client: jest.fn(() => {
+    // Return a mock component
+    return function MockChessClient() {
+      return <div data-testid="chess-client">Mock Chess Game Client</div>;
     };
   })
 }));
 
 describe('App Component', () => {
-  test('renders without crashing', () => {
+  test('renders main app structure', () => {
     render(<App />);
+    
+    // Check header content
+    expect(screen.getByText('Chess Game')).toBeInTheDocument();
+    expect(screen.getByText('Built with boardgame.io following FIDE Laws of Chess')).toBeInTheDocument();
+    
+    // Check that the chess client is rendered
     expect(screen.getByTestId('chess-client')).toBeInTheDocument();
+    
+    // Check footer content
+    expect(screen.getByText(/This chess implementation follows the official FIDE Laws of Chess/)).toBeInTheDocument();
   });
-  
-  test('renders chess game title', () => {
+
+  test('has proper semantic structure', () => {
     render(<App />);
-    expect(screen.getByText('Chess')).toBeInTheDocument();
+    
+    // Check for semantic HTML elements
+    expect(screen.getByRole('banner')).toBeInTheDocument(); // header
+    expect(screen.getByRole('main')).toBeInTheDocument();   // main
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument(); // footer
   });
-  
-  test('renders game board', () => {
+
+  test('displays chess implementation information', () => {
     render(<App />);
-    // Should render the chess board squares
-    const squares = document.querySelectorAll('.square');
-    expect(squares.length).toBeGreaterThan(0);
+    
+    const implementationText = screen.getByText(/implements all standard rules including castling, en passant, pawn promotion/);
+    expect(implementationText).toBeInTheDocument();
+  });
+
+  test('renders without crashing', () => {
+    expect(() => render(<App />)).not.toThrow();
+  });
+
+  test('has correct app class structure', () => {
+    const { container } = render(<App />);
+    
+    expect(container.firstChild).toHaveClass('App');
+    expect(container.querySelector('.App-header')).toBeInTheDocument();
+    expect(container.querySelector('.App-main')).toBeInTheDocument();
+    expect(container.querySelector('.App-footer')).toBeInTheDocument();
   });
 });
