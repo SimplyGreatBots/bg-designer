@@ -106,18 +106,75 @@ This document defines the specific instructions for the `bg-builder` chat mode, 
    - All code, configuration, and scripts (including `package.json`) must reside in the `game/` folder.
    - Never place game scripts or configs in the project root.
 
-10. **Working Directory:**
+10. **HTML Template Creation (MANDATORY FOR PARCEL):**
+
+    - **ALWAYS create `public/index.html` with complete structure**:
+      ```html
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <meta name="theme-color" content="#000000" />
+          <meta name="description" content="[Game Name] built with boardgame.io" />
+          <title>[Game Name] - boardgame.io</title>
+        </head>
+        <body>
+          <noscript>You need to enable JavaScript to play this game.</noscript>
+          <div id="root">
+            <!-- Loading indicator while React app loads -->
+            <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+              Loading [Game Name]...
+            </div>
+          </div>
+          <script type="module" src="../src/index.js"></script>
+        </body>
+      </html>
+      ```
+    - **CRITICAL**: Always include the script tag `<script type="module" src="../src/index.js"></script>` - Parcel does NOT auto-inject this
+    - **Path Convention**: HTML in `public/`, JS entry point in `src/index.js`, so use relative path `../src/index.js`
+    - **Loading Fallback**: Include loading content inside root div for better UX during app initialization
+
+11. **Working Directory:**
 
     - Always ensure you are in the `game/` folder when running commands like `npm start`, `npm install`, or when adding a `package.json`.
     - Do not run these commands or add configuration in the project root.
 
-11. **PowerShell Command Syntax:**
+12. **VS Code Tasks (MANDATORY - NEVER USE run_in_terminal FOR GAME COMMANDS):**
+
+    - **ALWAYS use VS Code tasks instead of `run_in_terminal` for game-related commands** to avoid working directory issues.
+    - **NEVER use `run_in_terminal` for commands like `npm start`, `npm install`, `npm test`, or `npm run build`** in game directories.
+    - **Task Creation Pattern**: For each game command, create a VS Code task with proper `cwd` (current working directory) setting:
+      ```json
+      {
+        "label": "Start [GameName] Dev Server",
+        "type": "shell", 
+        "command": "npm start",
+        "group": "build",
+        "isBackground": true,
+        "options": {
+          "cwd": "${workspaceFolder}/[game-name]/game"
+        },
+        "problemMatcher": []
+      }
+      ```
+    - **Required Tasks for Each Game**: Always create these tasks in `.vscode/tasks.json`:
+      - `"Start [GameName] Dev Server"` - for `npm start`
+      - `"Install [GameName] Dependencies"` - for `npm install`  
+      - `"Test [GameName]"` - for `npm test`
+      - `"Build [GameName]"` - for `npm run build`
+    - **Task Execution**: Use `run_vs_code_task` tool to execute tasks, never `run_in_terminal` for game commands.
+    - **Working Directory Solution**: VS Code tasks with `"cwd"` option ensure commands run in the correct directory, solving the workspace root default issue.
+    - **Background Tasks**: Use `"isBackground": true` for long-running processes like dev servers.
+    - **Task Management**: Check existing tasks before creating new ones to avoid duplicates.
+
+13. **PowerShell Command Syntax:**
 
     - Always use `;` for command chaining in PowerShell, never `&&` or `||`.
     - Example: `cd "path"; npm install` instead of `cd "path" && npm install`.
     - Follow PowerShell-specific syntax as defined in the powershell.instructions.md file.
 
-12. **Testing Dependencies and Configuration:**
+14. **Testing Dependencies and Configuration:**
 
     - Required devDependencies for React testing: `jest`, `jest-environment-jsdom`, `@testing-library/jest-dom`, `@testing-library/react`.
     - **Babel dependencies (OPTIONAL)**: Only install `@babel/core`, `@babel/preset-env`, `@babel/preset-react` if you need custom Babel configuration beyond Parcel's built-in transpilation.
@@ -131,7 +188,7 @@ This document defines the specific instructions for the `bg-builder` chat mode, 
       - Error boundaries for React components
       - Console logging for debugging prop passing issues
 
-13. **Client Architecture and Multiplayer Configuration:**
+15. **Client Architecture and Multiplayer Configuration:**
     - **Default to Single Client Architecture**: For testing and pass-and-play games, always start with a simple single client setup.
     - **Basic Client Setup**: Use `Client({ game: GameDefinition, board: BoardComponent, debug: true })` without multiplayer configuration initially.
     - **Pass-and-Play Mode**: For local pass-and-play games, do NOT add `multiplayer: Local()` or other multiplayer configurations.
@@ -148,19 +205,69 @@ This document defines the specific instructions for the `bg-builder` chat mode, 
     - **Debugging Setup**: Always include `debug: true` in the Client configuration during development to enable boardgame.io's debugging tools.
     - **Turn Management**: Use `events.endTurn()` in move functions to properly advance turns in boardgame.io.
 
-14. **Babel Configuration (OPTIONAL - Parcel Has Built-in Transpilation):**
+15. **HTML Entry Point and Script Loading (CRITICAL FOR PARCEL):**
+    - **ALWAYS manually add the script tag to index.html** when using Parcel - do NOT rely on auto-injection:
+      ```html
+      <script type="module" src="../src/index.js"></script>
+      ```
+    - **HTML File Structure**: Create `public/index.html` with proper structure:
+      - Include the root div: `<div id="root"></div>`
+      - Add loading spinner as fallback content inside the root div
+      - Place script tag at end of body, referencing the correct path to your entry point
+    - **Entry Point Path**: Use relative path `../src/index.js` when HTML is in `public/` folder and JS is in `src/`
+    - **Debugging Script Loading**: If app shows loading spinner indefinitely:
+      1. Check browser console for script loading errors
+      2. Verify script tag exists in HTML
+      3. Confirm script src path is correct relative to HTML file location
+      4. Check terminal for Parcel build errors
+
+16. **Package.json Configuration for Parcel:**
+    - **NEVER include a `"main"` field** in package.json when using Parcel - it causes library target errors
+    - **Scripts Configuration**:
+      ```json
+      {
+        "scripts": {
+          "start": "parcel public/index.html --port 3001",
+          "build": "parcel build public/index.html --dist-dir dist",
+          "test": "jest"
+        }
+      }
+      ```
+    - **Port Selection**: Use port 3001 to avoid conflicts with other common development servers
+    - **Jest Configuration**: Keep Jest config minimal and avoid transform configurations that conflict with Parcel:
+      ```json
+      {
+        "jest": {
+          "testEnvironment": "jsdom",
+          "setupFilesAfterEnv": ["<rootDir>/src/setupTests.js"],
+          "moduleNameMapper": {
+            "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+          }
+        }
+      }
+      ```
+    - **DO NOT add Jest transform configurations** - let Parcel handle all transpilation
+
+17. **Babel Configuration (OPTIONAL - Parcel Has Built-in Transpilation):**
     - **IMPORTANT**: When using Parcel bundler, Babel configuration is usually NOT needed.
     - Parcel includes transpilation by default and `.babelrc` files can hurt build performance.
     - Only create a `.babelrc` file if you need custom Babel plugins beyond standard React/JSX transpilation.
     - If you must use custom Babel configuration with Parcel, use `@parcel/babel-preset-env` instead of `@babel/preset-env`.
     - For most boardgame.io projects with Parcel: **DO NOT create a `.babelrc` file** - let Parcel handle transpilation automatically.
 
-15. **Common Issues and Troubleshooting:**
+16. **Common Issues and Troubleshooting:**
+    - **"Loading Chess Game..." Spinner Issue**: If app shows loading spinner indefinitely:
+      - **Most Common Cause**: Missing script tag in HTML file
+      - **Solution**: Add `<script type="module" src="../src/index.js"></script>` to index.html
+      - **Check List**: Verify script tag exists, path is correct, and browser console shows no errors
     - **"moves.functionName is undefined" Error**: This indicates props are not being passed correctly from boardgame.io Client. Solutions:
       - Add safety checks: `if (!G || !ctx || !moves) return <div>Loading...</div>;`
       - Verify Client configuration is correct (game, board, debug)
       - Start with basic Client setup without multiplayer for testing
       - Use console.log to debug which props are undefined
+    - **Parcel Library Target Error**: Remove `"main"` field from package.json
+    - **Port Conflict Issues**: Use port 3001 instead of 3000 to avoid conflicts
+    - **Jest/Parcel Conflicts**: Remove Jest transform configurations, let Parcel handle transpilation
     - **Parcel Babel Warnings**: If you see warnings about redundant presets, delete `.babelrc` file - Parcel handles transpilation automatically.
     - **PowerShell Command Errors**: Use `;` for command chaining, never `&&` or `||` which are bash-specific.
     - **Turn Management Issues**: Ensure moves call `events.endTurn()` to properly advance game state.
@@ -170,4 +277,5 @@ This document defines the specific instructions for the `bg-builder` chat mode, 
       2. Add safety checks for all boardgame.io props
       3. Use `debug: true` in Client configuration
       4. Add console logging to track prop values
-      5. Only add complexity (multiplayer) after basic functionality works
+      5. Check HTML has script tag and correct path
+      6. Only add complexity (multiplayer) after basic functionality works

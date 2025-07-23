@@ -8,6 +8,50 @@
 			"group": "build",
 			"isBackground": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "Start Chess Dev Server",
+			"type": "shell",
+			"command": "npm start",
+			"group": "build",
+			"isBackground": true,
+			"options": {
+				"cwd": "${workspaceFolder}/chess/game"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Install Chess Dependencies",
+			"type": "shell",
+			"command": "npm install",
+			"group": "build",
+			"isBackground": false,
+			"options": {
+				"cwd": "${workspaceFolder}/chess/game"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Test Chess",
+			"type": "shell",
+			"command": "npm test",
+			"group": "test",
+			"isBackground": false,
+			"options": {
+				"cwd": "${workspaceFolder}/chess/game"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build Chess",
+			"type": "shell",
+			"command": "npm run build",
+			"group": "build",
+			"isBackground": false,
+			"options": {
+				"cwd": "${workspaceFolder}/chess/game"
+			},
+			"problemMatcher": []
 		}
 	]
 }

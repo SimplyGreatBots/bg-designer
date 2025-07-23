@@ -1,39 +1,25 @@
-<!DOCTYPE html><html lang="en"><head><link rel="stylesheet" href="/game.9f367d21.css">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess - boardgame.io Implementation</title>
-    <meta name="description" content="Complete Chess implementation using boardgame.io framework, following FIDE Laws of Chess">
-    <style>* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
-  overflow-x: hidden;
-}
-
-.loading {
-  color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+<!DOCTYPE html><html lang="en"><head><link rel="stylesheet" href="/public.d91c94e1.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Chess game built with boardgame.io">
+    <title>Chess Game - boardgame.io</title>
+    <style>.loading-spinner {
+  background-color: #f8f9fa;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  font-size: 1.5em;
+  height: 100vh;
+  font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
   display: flex;
 }
 
-.loading:after {
-  content: "";
-  border: 4px solid #ffffff4d;
-  border-top-color: #fff;
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top-color: #007bff;
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  margin-left: 15px;
+  margin-right: 15px;
   animation: 1s linear infinite spin;
 }
 
@@ -46,23 +32,18 @@ body {
     transform: rotate(360deg);
   }
 }
-
-#root:not(:empty) + .loading {
-  display: none;
-}
 </style>
-</head>
-<body>
-    <!-- React app root -->
-    <div id="root"></div>
-    
-    <!-- Loading fallback -->
-    <div class="loading">
-        Loading Chess Game
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to play this chess game.</noscript>
+    <div id="root">
+      <!-- Loading indicator while React app loads -->
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <div>Loading Chess Game...</div>
+      </div>
     </div>
-    
-    <!-- Entry point script -->
-    <script type="module" src="/game.31b563d9.js"></script>
-
+    <script type="module" src="/public.31b563d9.js"></script>
+  
 
 </body></html>

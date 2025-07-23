@@ -1,26 +1,13 @@
-/**
- * Chess Board React Component
- * 
- * Renders the chess board with pieces and handles user interactions.
- * Integrates with boardgame.io to display game state and dispatch moves.
- */
-
 import React from 'react';
 import './Board.css';
+import { PIECES, COLORS, algebraicToIndices, indicesToAlgebraic, isInCheck } from './Game';
 
-const PIECES = {
-  KING: 'K',
-  QUEEN: 'Q',
-  ROOK: 'R',
-  BISHOP: 'B',
-  KNIGHT: 'N',
-  PAWN: 'P'
-};
+console.log('Board.js loaded');
 
-const COLORS = {
-  WHITE: 'white',
-  BLACK: 'black'
-};
+/**
+ * Chess Board React Component
+ * Renders interactive 8x8 chessboard with pieces and move selection
+ */
 
 // Unicode chess piece symbols
 const PIECE_SYMBOLS = {
@@ -42,364 +29,279 @@ const PIECE_SYMBOLS = {
   }
 };
 
-/**
- * Converts board coordinates to algebraic notation for display
- */
-function coordsToAlgebraic(row, col) {
-  const file = String.fromCharCode('a'.charCodeAt(0) + col);
-  const rank = 8 - row;
-  return file + rank;
-}
+function ChessBoard({ G, ctx, moves, events, playerID }) {
+  // Debug logging
+  console.log('ChessBoard props:', { 
+    G: G ? 'defined' : 'undefined', 
+    ctx: ctx ? 'defined' : 'undefined', 
+    moves: moves ? 'defined' : 'undefined',
+    events: events ? 'defined' : 'undefined',
+    playerID 
+  });
+  
+  if (G) {
+    console.log('Game state G:', {
+      board: G.board ? 'has board' : 'no board',
+      selectedSquare: G.selectedSquare,
+      castlingRights: G.castlingRights
+    });
+  }
+  
+  if (ctx) {
+    console.log('Game context ctx:', {
+      currentPlayer: ctx.currentPlayer,
+      turn: ctx.turn,
+      numPlayers: ctx.numPlayers,
+      gameover: ctx.gameover
+    });
+  }
 
-/**
- * Individual chess square component
- */
-function ChessSquare({ 
-  piece, 
-  isLight, 
-  isSelected, 
-  isValidMove, 
-  isInCheck, 
-  onClick, 
-  coordinate 
-}) {
-  const getSquareClass = () => {
-    let className = 'chess-square';
-    className += isLight ? ' light' : ' dark';
-    if (isSelected) className += ' selected';
-    if (isValidMove) className += ' valid-move';
-    if (isInCheck) className += ' in-check';
-    return className;
+  // Safety check for props that might be undefined
+  if (!G || !ctx || !moves) {
+    console.log('Board props debug:', { G, ctx, moves, events, playerID });
+    return (
+      <div className="loading">
+        <h3>Loading chess game...</h3>
+        <p>Waiting for game state to initialize...</p>
+        <div style={{ fontSize: '12px', marginTop: '10px' }}>
+          Debug: G={!!G}, ctx={!!ctx}, moves={!!moves}
+        </div>
+      </div>
+    );
+  }
+
+  const { board, selectedSquare, castlingRights, enPassantTarget } = G;
+  const currentPlayerColor = ctx.currentPlayer === '0' ? COLORS.WHITE : COLORS.BLACK;
+  const isMyTurn = ctx.currentPlayer === playerID;
+  
+  // Check if current player's king is in check
+  const inCheck = isInCheck(board, currentPlayerColor);
+
+  // Handle square click
+  const handleSquareClick = (row, col) => {
+    if (!isMyTurn) return;
+    const algebraic = indicesToAlgebraic(row, col);
+    moves.selectSquare(algebraic);
   };
 
-  const renderPiece = () => {
-    if (!piece) return null;
+  // Handle pawn promotion
+  const handlePromotion = (algebraic, pieceType) => {
+    moves.promotePawn(algebraic, pieceType);
+  };
+
+  // Render individual square
+  const renderSquare = (row, col) => {
+    const piece = board[row][col];
+    const algebraic = indicesToAlgebraic(row, col);
+    const isLight = (row + col) % 2 === 0;
+    const isSelected = selectedSquare === algebraic;
     
-    const symbol = PIECE_SYMBOLS[piece.color][piece.type];
+    // Check if this square is a valid move target
+    const isValidTarget = selectedSquare && canMoveToSquare(row, col);
+    
+    // Check if this square contains the king in check
+    const isKingInCheck = piece && piece.type === PIECES.KING && 
+                         piece.color === currentPlayerColor && inCheck;
+
+    let squareClass = `square ${isLight ? 'light' : 'dark'}`;
+    if (isSelected) squareClass += ' selected';
+    if (isValidTarget) squareClass += ' valid-target';
+    if (isKingInCheck) squareClass += ' in-check';
+    if (!isMyTurn) squareClass += ' disabled';
+
     return (
-      <span className={`piece ${piece.color}`} title={`${piece.color} ${piece.type}`}>
-        {symbol}
-      </span>
+      <div
+        key={`${row}-${col}`}
+        className={squareClass}
+        onClick={() => handleSquareClick(row, col)}
+      >
+        <div className="square-coordinates">
+          {row === 7 && String.fromCharCode(97 + col)}
+          {col === 0 && (8 - row)}
+        </div>
+        {piece && (
+          <div className={`piece ${piece.color}`}>
+            {PIECE_SYMBOLS[piece.color][piece.type]}
+          </div>
+        )}
+        {/* Show promotion options for pawns reaching the end */}
+        {showPromotionOptions(row, col) && (
+          <PromotionSelector 
+            algebraic={algebraic}
+            color={piece.color}
+            onSelect={handlePromotion}
+          />
+        )}
+      </div>
     );
   };
 
-  return (
-    <div 
-      className={getSquareClass()}
-      onClick={onClick}
-      data-coordinate={coordinate}
-    >
-      <div className="coordinate-label">{coordinate}</div>
-      {renderPiece()}
-      {isValidMove && !piece && <div className="move-indicator" />}
-    </div>
-  );
-}
-
-/**
- * Game status display component
- */
-function GameStatus({ ctx, G }) {
-  const currentPlayer = ctx.currentPlayer === '0' ? 'White' : 'Black';
-  
-  if (ctx.gameover) {
-    if (ctx.gameover.winner !== undefined) {
-      const winner = ctx.gameover.winner === '0' ? 'White' : 'Black';
-      return <div className="game-status checkmate">Checkmate! {winner} wins!</div>;
-    } else if (ctx.gameover.draw) {
-      return <div className="game-status draw">Game drawn!</div>;
-    }
-  }
-  
-  // Check for check status
-  const isInCheck = checkIfInCheck(G.board, currentPlayer.toLowerCase());
-  
-  return (
-    <div className="game-status">
-      {isInCheck && <span className="check-indicator">Check! </span>}
-      Current player: <strong>{currentPlayer}</strong>
-      <div className="move-counter">
-        Move {G.fullmoveNumber} • Half-moves: {G.halfmoveClock}/100
-      </div>
-    </div>
-  );
-}
-
-/**
- * Simple check detection for UI display
- */
-function checkIfInCheck(board, colorName) {
-  // This is a simplified version for UI display
-  // The actual game logic handles check detection
-  return false; // Placeholder - would need to implement check detection logic
-}
-
-/**
- * Move history display component
- */
-function MoveHistory({ G }) {
-  const moves = G.moveHistory || [];
-  
-  return (
-    <div className="move-history">
-      <h3>Move History</h3>
-      <div className="moves-list">
-        {moves.length === 0 ? (
-          <div className="no-moves">No moves yet</div>
-        ) : (
-          moves.map((move, index) => (
-            <div key={index} className="move-entry">
-              {Math.floor(index / 2) + 1}
-              {index % 2 === 0 ? '. ' : '... '}
-              {move.from} → {move.to}
-              {move.moveType === 'castle' && ' (Castle)'}
-              {move.moveType === 'enpassant' && ' (e.p.)'}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Captured pieces display component
- */
-function CapturedPieces({ G }) {
-  const whitePieces = [];
-  const blackPieces = [];
-  
-  // Count pieces on board to determine what's been captured
-  const piecesOnBoard = {
-    [COLORS.WHITE]: { [PIECES.PAWN]: 0, [PIECES.ROOK]: 0, [PIECES.KNIGHT]: 0, [PIECES.BISHOP]: 0, [PIECES.QUEEN]: 0, [PIECES.KING]: 0 },
-    [COLORS.BLACK]: { [PIECES.PAWN]: 0, [PIECES.ROOK]: 0, [PIECES.KNIGHT]: 0, [PIECES.BISHOP]: 0, [PIECES.QUEEN]: 0, [PIECES.KING]: 0 }
-  };
-  
-  // Count current pieces
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = G.board[row][col];
-      if (piece) {
-        piecesOnBoard[piece.color][piece.type]++;
-      }
-    }
-  }
-  
-  // Starting piece counts
-  const startingCounts = {
-    [PIECES.PAWN]: 8, [PIECES.ROOK]: 2, [PIECES.KNIGHT]: 2, 
-    [PIECES.BISHOP]: 2, [PIECES.QUEEN]: 1, [PIECES.KING]: 1
-  };
-  
-  // Calculate captured pieces
-  const capturedWhite = [];
-  const capturedBlack = [];
-  
-  Object.keys(startingCounts).forEach(pieceType => {
-    const whiteCaptured = startingCounts[pieceType] - piecesOnBoard[COLORS.WHITE][pieceType];
-    const blackCaptured = startingCounts[pieceType] - piecesOnBoard[COLORS.BLACK][pieceType];
+  // Check if we can move to a square (for highlighting)
+  const canMoveToSquare = (row, col) => {
+    if (!selectedSquare) return false;
     
-    for (let i = 0; i < whiteCaptured; i++) {
-      capturedWhite.push(PIECE_SYMBOLS[COLORS.WHITE][pieceType]);
-    }
-    for (let i = 0; i < blackCaptured; i++) {
-      capturedBlack.push(PIECE_SYMBOLS[COLORS.BLACK][pieceType]);
-    }
-  });
-  
-  return (
-    <div className="captured-pieces">
-      <div className="captured-section">
-        <h4>Captured White Pieces</h4>
-        <div className="captured-list">
-          {capturedWhite.length === 0 ? 'None' : capturedWhite.join(' ')}
-        </div>
-      </div>
-      <div className="captured-section">
-        <h4>Captured Black Pieces</h4>
-        <div className="captured-list">
-          {capturedBlack.length === 0 ? 'None' : capturedBlack.join(' ')}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Promotion dialog component
- */
-function PromotionDialog({ isVisible, color, onPromote, onCancel }) {
-  if (!isVisible) return null;
-  
-  const pieces = [PIECES.QUEEN, PIECES.ROOK, PIECES.BISHOP, PIECES.KNIGHT];
-  
-  return (
-    <div className="promotion-dialog-overlay">
-      <div className="promotion-dialog">
-        <h3>Promote Pawn</h3>
-        <p>Choose a piece to promote to:</p>
-        <div className="promotion-options">
-          {pieces.map(piece => (
-            <button
-              key={piece}
-              className="promotion-option"
-              onClick={() => onPromote(piece)}
-              title={piece}
-            >
-              <span className="piece-large">
-                {PIECE_SYMBOLS[color][piece]}
-              </span>
-              <span className="piece-name">{piece}</span>
-            </button>
-          ))}
-        </div>
-        <button className="cancel-button" onClick={onCancel}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Main Chess Board component
- */
-export default function ChessBoard(props) {
-  const { G, ctx, moves } = props;
-  
-  // Safety check: don't render if essential props are missing
-  if (!G || !ctx || !moves) {
-    console.log('Missing props:', { G: !!G, ctx: !!ctx, moves: !!moves, allProps: props });
-    return <div>Loading...</div>;
-  }
-  
-  const [promotionDialog, setPromotionDialog] = React.useState({
-    visible: false,
-    row: null,
-    col: null,
-    color: null
-  });
-  
-  // Check if a pawn needs promotion
-  React.useEffect(() => {
-    if (G.selectedSquare) {
-      const piece = G.board[G.selectedSquare.row][G.selectedSquare.col];
-      if (piece && piece.type === PIECES.PAWN) {
-        const promotionRow = piece.color === COLORS.WHITE ? 0 : 7;
-        // Check if any of the valid moves would result in promotion
-        const promotionMove = G.validMoves.find(move => move.row === promotionRow);
-        if (promotionMove) {
-          // Note: This is simplified - in a real implementation, you'd handle promotion
-          // after the move is made, not before
-        }
-      }
-    }
-  }, [G.selectedSquare, G.validMoves]);
-  
-  const handleSquareClick = (row, col) => {
-    // In pass-and-play mode, anyone can make moves for the current player
-    if (moves && moves.selectSquare) {
-      moves.selectSquare(row, col);
-    } else {
-      console.error('moves.selectSquare is not available. Props:', { G, ctx, moves, playerID });
-    }
-  };
-  
-  const handlePromotion = (pieceType) => {
-    moves.promotePawn(promotionDialog.row, promotionDialog.col, pieceType);
-    setPromotionDialog({ visible: false, row: null, col: null, color: null });
-  };
-  
-  const cancelPromotion = () => {
-    setPromotionDialog({ visible: false, row: null, col: null, color: null });
-  };
-  
-  const renderBoard = () => {
-    const squares = [];
+    const [fromRow, fromCol] = algebraicToIndices(selectedSquare);
+    const fromPiece = board[fromRow][fromCol];
     
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
-        const piece = G.board[row][col];
-        const isLight = (row + col) % 2 === 1;
-        const isSelected = G.selectedSquare && 
-                          G.selectedSquare.row === row && 
-                          G.selectedSquare.col === col;
-        const isValidMove = G.validMoves.some(move => 
-                           move.row === row && move.col === col);
-        const coordinate = coordsToAlgebraic(row, col);
+    if (!fromPiece || fromPiece.color !== currentPlayerColor) return false;
+    
+    // This is a simplified check - the full validation is in Game.js
+    return isValidMovePreview(fromRow, fromCol, row, col, fromPiece);
+  };
+
+  // Simplified move validation for UI preview
+  const isValidMovePreview = (fromRow, fromCol, toRow, toCol, piece) => {
+    if (fromRow === toRow && fromCol === toCol) return false;
+    
+    const targetPiece = board[toRow][toCol];
+    if (targetPiece && targetPiece.color === piece.color) return false;
+    
+    const rowDiff = toRow - fromRow;
+    const colDiff = toCol - fromCol;
+    
+    switch (piece.type) {
+      case PIECES.PAWN:
+        const direction = piece.color === COLORS.WHITE ? -1 : 1;
+        const startRow = piece.color === COLORS.WHITE ? 6 : 1;
         
-        squares.push(
-          <ChessSquare
-            key={`${row}-${col}`}
-            piece={piece}
-            isLight={isLight}
-            isSelected={isSelected}
-            isValidMove={isValidMove}
-            isInCheck={false} // Simplified for now
-            onClick={() => handleSquareClick(row, col)}
-            coordinate={coordinate}
-          />
-        );
+        // Forward movement
+        if (colDiff === 0) {
+          if (rowDiff === direction && !targetPiece) return true;
+          if (fromRow === startRow && rowDiff === 2 * direction && !targetPiece) return true;
+        }
+        
+        // Diagonal capture
+        if (Math.abs(colDiff) === 1 && rowDiff === direction) {
+          if (targetPiece || enPassantTarget === indicesToAlgebraic(toRow, toCol)) return true;
+        }
+        return false;
+        
+      case PIECES.ROOK:
+        return rowDiff === 0 || colDiff === 0;
+        
+      case PIECES.BISHOP:
+        return Math.abs(rowDiff) === Math.abs(colDiff);
+        
+      case PIECES.QUEEN:
+        return rowDiff === 0 || colDiff === 0 || Math.abs(rowDiff) === Math.abs(colDiff);
+        
+      case PIECES.KNIGHT:
+        return (Math.abs(rowDiff) === 2 && Math.abs(colDiff) === 1) || 
+               (Math.abs(rowDiff) === 1 && Math.abs(colDiff) === 2);
+        
+      case PIECES.KING:
+        return Math.abs(rowDiff) <= 1 && Math.abs(colDiff) <= 1;
+        
+      default:
+        return false;
+    }
+  };
+
+  // Check if pawn promotion options should be shown
+  const showPromotionOptions = (row, col) => {
+    const piece = board[row][col];
+    return piece && piece.type === PIECES.PAWN && 
+           piece.color === currentPlayerColor &&
+           (row === 0 || row === 7) &&
+           selectedSquare === indicesToAlgebraic(row, col);
+  };
+
+  // Get game status text
+  const getGameStatus = () => {
+    if (ctx.gameover) {
+      if (ctx.gameover.winner) {
+        const winnerColor = ctx.gameover.winner;
+        return `Game Over - ${winnerColor.charAt(0).toUpperCase() + winnerColor.slice(1)} wins by ${ctx.gameover.reason}!`;
+      } else if (ctx.gameover.draw) {
+        return `Game Over - Draw by ${ctx.gameover.reason}`;
       }
     }
     
-    return squares;
+    if (inCheck) {
+      return `${currentPlayerColor.charAt(0).toUpperCase() + currentPlayerColor.slice(1)} is in check!`;
+    }
+    
+    return `${currentPlayerColor.charAt(0).toUpperCase() + currentPlayerColor.slice(1)} to move`;
   };
-  
+
   return (
     <div className="chess-game">
-      <div className="game-header">
-        <h1>Chess</h1>
-        <GameStatus ctx={ctx} G={G} />
-      </div>
-      
-      <div className="game-content">
-        <div className="board-container">
-          <div className="chess-board">
-            {renderBoard()}
-          </div>
-          
-          <div className="board-labels">
-            <div className="rank-labels">
-              {[8, 7, 6, 5, 4, 3, 2, 1].map(rank => (
-                <div key={rank} className="rank-label">{rank}</div>
-              ))}
-            </div>
-            <div className="file-labels">
-              {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(file => (
-                <div key={file} className="file-label">{file}</div>
-              ))}
-            </div>
-          </div>
+      <div className="game-info">
+        <h2>Chess Game</h2>
+        <div className="status">{getGameStatus()}</div>
+        <div className="turn-info">
+          Turn: {G.fullMoveNumber} | Half-moves: {G.halfMoveClock}
         </div>
         
-        <div className="game-sidebar">
-          <MoveHistory G={G} />
-          <CapturedPieces G={G} />
-          
-          <div className="game-info">
-            <div className="castling-rights">
-              <h4>Castling Rights</h4>
-              <div>White: K{G.castlingRights?.whiteKing ? '✓' : '✗'} Q{G.castlingRights?.whiteQueen ? '✓' : '✗'}</div>
-              <div>Black: K{G.castlingRights?.blackKing ? '✓' : '✗'} Q{G.castlingRights?.blackQueen ? '✓' : '✗'}</div>
-            </div>
-            
-            {G.enPassantTarget && (
-              <div className="en-passant">
-                <h4>En Passant Target</h4>
-                <div>{G.enPassantTarget}</div>
-              </div>
-            )}
+        {/* Game controls */}
+        <div className="game-controls">
+          {isMyTurn && !ctx.gameover && (
+            <>
+              <button onClick={() => moves.offerDraw()}>Offer Draw</button>
+              <button onClick={() => moves.resign()}>Resign</button>
+            </>
+          )}
+        </div>
+        
+        {/* Castling rights display */}
+        <div className="castling-rights">
+          <h4>Castling Rights:</h4>
+          <div>White: {castlingRights.white.kingside ? 'K' : ''}
+                     {castlingRights.white.queenside ? 'Q' : ''}</div>
+          <div>Black: {castlingRights.black.kingside ? 'k' : ''}
+                     {castlingRights.black.queenside ? 'q' : ''}</div>
+        </div>
+        
+        {/* En passant target */}
+        {enPassantTarget && (
+          <div className="en-passant">
+            En passant target: {enPassantTarget}
           </div>
+        )}
+      </div>
+      
+      <div className="board-container">
+        <div className="chessboard">
+          {board.map((row, rowIndex) => 
+            row.map((_, colIndex) => renderSquare(rowIndex, colIndex))
+          )}
         </div>
       </div>
       
-      <PromotionDialog
-        isVisible={promotionDialog.visible}
-        color={promotionDialog.color}
-        onPromote={handlePromotion}
-        onCancel={cancelPromotion}
-      />
+      {/* Move history */}
+      <div className="move-history">
+        <h4>Move History:</h4>
+        <div className="moves">
+          {G.moveHistory.map((move, index) => (
+            <div key={index} className="move">
+              {Math.floor(index / 2) + 1}.{index % 2 === 0 ? '' : '..'}
+              {move.piece}{move.from}-{move.to}{move.captured ? `x${move.captured}` : ''}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
+
+// Pawn promotion selector component
+function PromotionSelector({ algebraic, color, onSelect }) {
+  const promotionPieces = [PIECES.QUEEN, PIECES.ROOK, PIECES.BISHOP, PIECES.KNIGHT];
+  
+  return (
+    <div className="promotion-selector">
+      <h4>Promote to:</h4>
+      {promotionPieces.map(pieceType => (
+        <button
+          key={pieceType}
+          onClick={() => onSelect(algebraic, pieceType)}
+          className="promotion-option"
+        >
+          {PIECE_SYMBOLS[color][pieceType]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default ChessBoard;

@@ -25,6 +25,7 @@ Design the boardgame.io Game object with proper state (G), moves, turn order, an
 Ensure all game logic derives exclusively from the provided documentation
 Create React components for game entities and user interactions
 Structure code into separate files: Game.js (logic), Board.js (UI), App.js (client)
+CRITICAL: Always create public/index.html with manual script tag - Parcel does NOT auto-inject scripts
 
 Validation Phase
 Verify implementation matches documented rules exactly
@@ -43,6 +44,7 @@ Faithful Implementation: Never invent rules, mechanics, or entities - derive eve
 Clean Architecture: Maintain clear separation between game logic and UI presentation
 Best Practices: Use boardgame.io concepts (Game object, G, ctx, moves, events, phases) idiomatically according to the documentation
 Structured Output: Organize implementations with proper file structure and comprehensive comments
+HTML Script Tags (CRITICAL): Always manually add script tag to index.html - Parcel does NOT auto-inject
 Steps
 Identify Target Game: Determine which game folder to work with or ask user to specify
 Documentation Review (REQUIRED): Read boardgame.io documentation in the workspace BEFORE any implementation work
@@ -56,6 +58,8 @@ Provide complete, runnable code organized into appropriate files:
 Game.js: Complete boardgame.io game object definition
 Board.js: Main React component for game rendering and interaction
 App.js: Top-level component integrating game logic with client
+public/index.html: HTML template with manual script tag (CRITICAL - Parcel doesn't auto-inject)
+package.json: Dependencies and scripts configuration (no "main" field for Parcel)
 Include detailed comments explaining game logic and UI decisions
 Examples
 User Request: "Create a tic-tac-toe implementation" Response Process:
@@ -66,6 +70,8 @@ Extract game state (3x3 grid, current player, win conditions) using boardgame.io
 Implement Game.js with moves for placing marks following framework conventions
 Create Board.js with clickable grid interface
 Build App.js with boardgame.io client integration
+CRITICAL: Create public/index.html with script tag: <script type="module" src="../src/index.js"></script>
+Configure package.json without "main" field for Parcel compatibility
 Notes
 Always ask for clarification if game documentation is ambiguous or contradictory
 Reference the workspace's existing game implementations as architectural examples

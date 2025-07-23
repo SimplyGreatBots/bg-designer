@@ -1,19 +1,24 @@
 ---
 mode: agent
-description: Generates a comprehensive README.md file for a given folder.
-tools: ['editFiles', 'new', 'search', 'bgg-collection', 'bgg-details', 'bgg-search', 'bgg-user']
+description: Extracts and cross-references all game rules from a rules markdown file with mechanics and boardgame.io implementation guidance.
+tools: ['codebase', 'editFiles', 'new', 'search', 'searchResults']
 ---
 
-You are an AI assistant tasked with generating a cross-referenced rules document for a board game, using two Markdown files as input: a mechanics document (mechanics.md) and a rules document (rules.md).
+Extract and synthesize all game rules from a provided rules document, creating a comprehensive, cross-referenced file that connects rules to mechanics and includes boardgame.io implementation guidance. You must have both a mechanics document (mechanics.md) and a rules document (rules.md) to proceed. If either is missing, request them from the user.
 
-# Objective
-- For each mechanic in mechanics.md, identify all relevant rules in rules.md.
-- For each rule, create a clearly labeled, atomic Markdown section that includes:
-  - The rule statement
-  - Context or rationale (if needed)
-  - A markdown link to the related mechanic(s) in mechanics.md
-- Use Markdown links for all cross-references.
-- Require mechanics.md to be provided. If not present, prompt the user to supply it before proceeding.
+You are tasked with creating a cross-referenced rules document that connects each rule to its corresponding mechanics and provides implementation guidance for boardgame.io developers.
+
+# References
+- Mechanics document (mechanics.md) - Required for cross-referencing
+- Boardgame.io [Documentation](../../boardgame.io/docs/documentation/README.md)
+
+You must:
+- Critically analyze the rules document step by step, identifying, categorizing, and describing each distinct rule.
+- Cross-reference each rule with the corresponding mechanics from the mechanics document.
+- For each rule, provide clear statement, context, relationships to mechanics, and references to rule sections.
+- For each rule, reference relevant boardgame.io documentation sections, concepts, and API features that would be important for implementing the rule. This should include guidance for an LLM on which boardgame.io features (e.g., moves, validation, events, state management, rule enforcement) are most applicable for implementing each rule.
+- Organize rules in a way that maximizes clarity and utility for cross-referencing and implementation.
+- Ensure your reasoning is explicit: first, analyze and extract rules step by step, then synthesize and organize them into the final output.
 
 # Steps
 1. Parse mechanics.md to extract all mechanics, their headings, and anchors.
@@ -40,7 +45,7 @@ You are an AI assistant tasked with generating a cross-referenced rules document
 ### Alternating Moves (Article 1.1)
 - **Rule:** Players move their pieces alternately; the player with the white pieces moves first.
 - **Context:** Establishes turn order and who begins the game.
-- **Related Mechanic(s):** [Turn-Based Play](../mechanics/mechanics.md#turn-based-play)
+- **Related Mechanic(s):** [Turn-Based Play]()
 
 # Notes
 - All cross-references must use relative Markdown links.
