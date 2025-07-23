@@ -1,62 +1,74 @@
-import React from 'react';
+/**
+ * Chess Game Tests
+ * 
+ * Basic tests for the chess game logic and components
+ */
+
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import ChessGame from './Game';
 
-// Mock the CSS imports
-jest.mock('./App.css', () => ({}));
-jest.mock('./Board.css', () => ({}));
-
-// Mock the boardgame.io client since we're testing the App component structure
-jest.mock('boardgame.io/react', () => ({
-  Client: jest.fn(() => {
-    // Return a mock component
-    return function MockChessClient() {
-      return <div data-testid="chess-client">Mock Chess Game Client</div>;
-    };
-  })
-}));
-
-describe('App Component', () => {
-  test('renders main app structure', () => {
+// Test the main App component
+describe('Chess App', () => {
+  test('renders game lobby initially', () => {
     render(<App />);
-    
-    // Check header content
     expect(screen.getByText('Chess Game')).toBeInTheDocument();
-    expect(screen.getByText('Built with boardgame.io following FIDE Laws of Chess')).toBeInTheDocument();
-    
-    // Check that the chess client is rendered
-    expect(screen.getByTestId('chess-client')).toBeInTheDocument();
-    
-    // Check footer content
-    expect(screen.getByText(/This chess implementation follows the official FIDE Laws of Chess/)).toBeInTheDocument();
+    expect(screen.getByText('Start Local Game')).toBeInTheDocument();
   });
 
-  test('has proper semantic structure', () => {
+  test('displays features list', () => {
     render(<App />);
-    
-    // Check for semantic HTML elements
-    expect(screen.getByRole('banner')).toBeInTheDocument(); // header
-    expect(screen.getByRole('main')).toBeInTheDocument();   // main
-    expect(screen.getByRole('contentinfo')).toBeInTheDocument(); // footer
+    expect(screen.getByText('✓ Complete chess rules implementation')).toBeInTheDocument();
+    expect(screen.getByText('✓ Check, Checkmate, and Stalemate detection')).toBeInTheDocument();
+  });
+});
+
+// Test the chess game logic
+describe('Chess Game Logic', () => {
+  test('game has correct name', () => {
+    expect(ChessGame.name).toBe('chess');
   });
 
-  test('displays chess implementation information', () => {
-    render(<App />);
+  test('game setup creates initial board state', () => {
+    const initialState = ChessGame.setup();
     
-    const implementationText = screen.getByText(/implements all standard rules including castling, en passant, pawn promotion/);
-    expect(implementationText).toBeInTheDocument();
+    expect(initialState.board).toBeDefined();
+    expect(initialState.board.length).toBe(8);
+    expect(initialState.board[0].length).toBe(8);
+    
+    // Check initial piece positions
+    expect(initialState.board[0][0]).toEqual({
+      type: 'R',
+      color: 'black',
+      hasMoved: false
+    });
+    
+    expect(initialState.board[7][4]).toEqual({
+      type: 'K',
+      color: 'white',
+      hasMoved: false
+    });
+    
+    // Check castling rights
+    expect(initialState.castlingRights).toEqual({
+      whiteKing: true,
+      whiteQueen: true,
+      blackKing: true,
+      blackQueen: true
+    });
+    
+    // Check initial state values
+    expect(initialState.enPassantTarget).toBeNull();
+    expect(initialState.halfmoveClock).toBe(0);
+    expect(initialState.fullmoveNumber).toBe(1);
   });
 
-  test('renders without crashing', () => {
-    expect(() => render(<App />)).not.toThrow();
+  test('game has required moves', () => {
+    expect(ChessGame.moves.selectSquare).toBeDefined();
+    expect(ChessGame.moves.promotePawn).toBeDefined();
   });
 
-  test('has correct app class structure', () => {
-    const { container } = render(<App />);
-    
-    expect(container.firstChild).toHaveClass('App');
-    expect(container.querySelector('.App-header')).toBeInTheDocument();
-    expect(container.querySelector('.App-main')).toBeInTheDocument();
-    expect(container.querySelector('.App-footer')).toBeInTheDocument();
+  test('game has endIf condition', () => {
+    expect(ChessGame.endIf).toBeDefined();
   });
 });

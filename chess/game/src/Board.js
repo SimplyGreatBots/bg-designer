@@ -1,68 +1,109 @@
+/**
+ * Chess Board React Component
+ * 
+ * Renders the chess board with pieces and handles user interactions.
+ * Integrates with boardgame.io to display game state and dispatch moves.
+ */
+
 import React from 'react';
 import './Board.css';
 
-// Chess piece Unicode symbols
+const PIECES = {
+  KING: 'K',
+  QUEEN: 'Q',
+  ROOK: 'R',
+  BISHOP: 'B',
+  KNIGHT: 'N',
+  PAWN: 'P'
+};
+
+const COLORS = {
+  WHITE: 'white',
+  BLACK: 'black'
+};
+
+// Unicode chess piece symbols
 const PIECE_SYMBOLS = {
-  white: {
-    king: '♔',
-    queen: '♕',
-    rook: '♖',
-    bishop: '♗',
-    knight: '♘',
-    pawn: '♙'
+  [COLORS.WHITE]: {
+    [PIECES.KING]: '♔',
+    [PIECES.QUEEN]: '♕',
+    [PIECES.ROOK]: '♖',
+    [PIECES.BISHOP]: '♗',
+    [PIECES.KNIGHT]: '♘',
+    [PIECES.PAWN]: '♙'
   },
-  black: {
-    king: '♚',
-    queen: '♛',
-    rook: '♜',
-    bishop: '♝',
-    knight: '♞',
-    pawn: '♟'
+  [COLORS.BLACK]: {
+    [PIECES.KING]: '♚',
+    [PIECES.QUEEN]: '♛',
+    [PIECES.ROOK]: '♜',
+    [PIECES.BISHOP]: '♝',
+    [PIECES.KNIGHT]: '♞',
+    [PIECES.PAWN]: '♟'
   }
 };
 
-// Convert array indices to chess notation
-function getSquareNotation(row, col) {
-  const files = 'abcdefgh';
-  const ranks = '87654321';
-  return files[col] + ranks[row];
+/**
+ * Converts board coordinates to algebraic notation for display
+ */
+function coordsToAlgebraic(row, col) {
+  const file = String.fromCharCode('a'.charCodeAt(0) + col);
+  const rank = 8 - row;
+  return file + rank;
 }
 
-// Get valid moves for selected piece (helper for highlighting)
-function getValidMovesForSquare(G, row, col) {
-  if (!G.selectedSquare) return [];
-  
-  const { row: selectedRow, col: selectedCol } = G.selectedSquare;
-  if (selectedRow !== row || selectedCol !== col) return [];
-  
-  // This would need the actual getValidMoves function from Game.js
-  // For now, return empty array - moves will be validated server-side
-  return [];
-}
+/**
+ * Individual chess square component
+ */
+function ChessSquare({ 
+  piece, 
+  isLight, 
+  isSelected, 
+  isValidMove, 
+  isInCheck, 
+  onClick, 
+  coordinate 
+}) {
+  const getSquareClass = () => {
+    let className = 'chess-square';
+    className += isLight ? ' light' : ' dark';
+    if (isSelected) className += ' selected';
+    if (isValidMove) className += ' valid-move';
+    if (isInCheck) className += ' in-check';
+    return className;
+  };
 
-function ChessSquare({ piece, isLight, isSelected, isValidMove, onClick, notation }) {
-  const squareClass = [
-    'chess-square',
-    isLight ? 'light' : 'dark',
-    isSelected ? 'selected' : '',
-    isValidMove ? 'valid-move' : ''
-  ].filter(Boolean).join(' ');
-
-  const pieceSymbol = piece ? PIECE_SYMBOLS[piece.color][piece.type] : '';
+  const renderPiece = () => {
+    if (!piece) return null;
+    
+    const symbol = PIECE_SYMBOLS[piece.color][piece.type];
+    return (
+      <span className={`piece ${piece.color}`} title={`${piece.color} ${piece.type}`}>
+        {symbol}
+      </span>
+    );
+  };
 
   return (
-    <button className={squareClass} onClick={onClick} title={notation}>
-      <span className="piece-symbol">{pieceSymbol}</span>
-      <span className="square-notation">{notation}</span>
-    </button>
+    <div 
+      className={getSquareClass()}
+      onClick={onClick}
+      data-coordinate={coordinate}
+    >
+      <div className="coordinate-label">{coordinate}</div>
+      {renderPiece()}
+      {isValidMove && !piece && <div className="move-indicator" />}
+    </div>
   );
 }
 
+/**
+ * Game status display component
+ */
 function GameStatus({ ctx, G }) {
   const currentPlayer = ctx.currentPlayer === '0' ? 'White' : 'Black';
   
   if (ctx.gameover) {
-    if (ctx.gameover.winner) {
+    if (ctx.gameover.winner !== undefined) {
       const winner = ctx.gameover.winner === '0' ? 'White' : 'Black';
       return <div className="game-status checkmate">Checkmate! {winner} wins!</div>;
     } else if (ctx.gameover.draw) {
@@ -70,218 +111,295 @@ function GameStatus({ ctx, G }) {
     }
   }
   
-  // Check if current player is in check
-  const playerColor = ctx.currentPlayer === '0' ? 'white' : 'black';
-  // We'd need to import the isInCheck function from Game.js for this
-  // For now, just show current turn
+  // Check for check status
+  const isInCheck = checkIfInCheck(G.board, currentPlayer.toLowerCase());
   
   return (
     <div className="game-status">
-      <div className="current-turn">{currentPlayer} to move</div>
-      <div className="move-counter">Move {G.fullMoveNumber}</div>
+      {isInCheck && <span className="check-indicator">Check! </span>}
+      Current player: <strong>{currentPlayer}</strong>
+      <div className="move-counter">
+        Move {G.fullmoveNumber} • Half-moves: {G.halfmoveClock}/100
+      </div>
     </div>
   );
 }
 
+/**
+ * Simple check detection for UI display
+ */
+function checkIfInCheck(board, colorName) {
+  // This is a simplified version for UI display
+  // The actual game logic handles check detection
+  return false; // Placeholder - would need to implement check detection logic
+}
+
+/**
+ * Move history display component
+ */
+function MoveHistory({ G }) {
+  const moves = G.moveHistory || [];
+  
+  return (
+    <div className="move-history">
+      <h3>Move History</h3>
+      <div className="moves-list">
+        {moves.length === 0 ? (
+          <div className="no-moves">No moves yet</div>
+        ) : (
+          moves.map((move, index) => (
+            <div key={index} className="move-entry">
+              {Math.floor(index / 2) + 1}
+              {index % 2 === 0 ? '. ' : '... '}
+              {move.from} → {move.to}
+              {move.moveType === 'castle' && ' (Castle)'}
+              {move.moveType === 'enpassant' && ' (e.p.)'}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Captured pieces display component
+ */
 function CapturedPieces({ G }) {
-  // Calculate captured pieces
-  const allPieces = {
-    white: { king: 1, queen: 1, rook: 2, bishop: 2, knight: 2, pawn: 8 },
-    black: { king: 1, queen: 1, rook: 2, bishop: 2, knight: 2, pawn: 8 }
+  const whitePieces = [];
+  const blackPieces = [];
+  
+  // Count pieces on board to determine what's been captured
+  const piecesOnBoard = {
+    [COLORS.WHITE]: { [PIECES.PAWN]: 0, [PIECES.ROOK]: 0, [PIECES.KNIGHT]: 0, [PIECES.BISHOP]: 0, [PIECES.QUEEN]: 0, [PIECES.KING]: 0 },
+    [COLORS.BLACK]: { [PIECES.PAWN]: 0, [PIECES.ROOK]: 0, [PIECES.KNIGHT]: 0, [PIECES.BISHOP]: 0, [PIECES.QUEEN]: 0, [PIECES.KING]: 0 }
   };
   
-  const remainingPieces = { white: {}, black: {} };
-  
-  // Count remaining pieces on board
+  // Count current pieces
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const piece = G.board[row][col];
       if (piece) {
-        remainingPieces[piece.color][piece.type] = (remainingPieces[piece.color][piece.type] || 0) + 1;
+        piecesOnBoard[piece.color][piece.type]++;
       }
     }
   }
+  
+  // Starting piece counts
+  const startingCounts = {
+    [PIECES.PAWN]: 8, [PIECES.ROOK]: 2, [PIECES.KNIGHT]: 2, 
+    [PIECES.BISHOP]: 2, [PIECES.QUEEN]: 1, [PIECES.KING]: 1
+  };
   
   // Calculate captured pieces
-  const captured = { white: [], black: [] };
+  const capturedWhite = [];
+  const capturedBlack = [];
   
-  for (const color of ['white', 'black']) {
-    for (const [type, count] of Object.entries(allPieces[color])) {
-      const remaining = remainingPieces[color][type] || 0;
-      const capturedCount = count - remaining;
-      
-      for (let i = 0; i < capturedCount; i++) {
-        captured[color].push(type);
-      }
+  Object.keys(startingCounts).forEach(pieceType => {
+    const whiteCaptured = startingCounts[pieceType] - piecesOnBoard[COLORS.WHITE][pieceType];
+    const blackCaptured = startingCounts[pieceType] - piecesOnBoard[COLORS.BLACK][pieceType];
+    
+    for (let i = 0; i < whiteCaptured; i++) {
+      capturedWhite.push(PIECE_SYMBOLS[COLORS.WHITE][pieceType]);
     }
-  }
+    for (let i = 0; i < blackCaptured; i++) {
+      capturedBlack.push(PIECE_SYMBOLS[COLORS.BLACK][pieceType]);
+    }
+  });
   
   return (
     <div className="captured-pieces">
       <div className="captured-section">
         <h4>Captured White Pieces</h4>
         <div className="captured-list">
-          {captured.white.map((type, index) => (
-            <span key={index} className="captured-piece">
-              {PIECE_SYMBOLS.white[type]}
-            </span>
-          ))}
+          {capturedWhite.length === 0 ? 'None' : capturedWhite.join(' ')}
         </div>
       </div>
       <div className="captured-section">
         <h4>Captured Black Pieces</h4>
         <div className="captured-list">
-          {captured.black.map((type, index) => (
-            <span key={index} className="captured-piece">
-              {PIECE_SYMBOLS.black[type]}
-            </span>
-          ))}
+          {capturedBlack.length === 0 ? 'None' : capturedBlack.join(' ')}
         </div>
       </div>
     </div>
   );
 }
 
-function MoveHistory({ G }) {
-  const { moveHistory } = G;
+/**
+ * Promotion dialog component
+ */
+function PromotionDialog({ isVisible, color, onPromote, onCancel }) {
+  if (!isVisible) return null;
   
-  // Group moves by pairs (white and black)
-  const movePairs = [];
-  for (let i = 0; i < moveHistory.length; i += 2) {
-    const whiteMove = moveHistory[i];
-    const blackMove = moveHistory[i + 1];
-    movePairs.push({ white: whiteMove, black: blackMove });
-  }
+  const pieces = [PIECES.QUEEN, PIECES.ROOK, PIECES.BISHOP, PIECES.KNIGHT];
   
   return (
-    <div className="move-history">
-      <h4>Move History</h4>
-      <div className="move-list">
-        {movePairs.map((pair, index) => (
-          <div key={index} className="move-pair">
-            <span className="move-number">{index + 1}.</span>
-            <span className="white-move">
-              {pair.white ? formatMove(pair.white) : ''}
-            </span>
-            <span className="black-move">
-              {pair.black ? formatMove(pair.black) : ''}
-            </span>
-          </div>
-        ))}
+    <div className="promotion-dialog-overlay">
+      <div className="promotion-dialog">
+        <h3>Promote Pawn</h3>
+        <p>Choose a piece to promote to:</p>
+        <div className="promotion-options">
+          {pieces.map(piece => (
+            <button
+              key={piece}
+              className="promotion-option"
+              onClick={() => onPromote(piece)}
+              title={piece}
+            >
+              <span className="piece-large">
+                {PIECE_SYMBOLS[color][piece]}
+              </span>
+              <span className="piece-name">{piece}</span>
+            </button>
+          ))}
+        </div>
+        <button className="cancel-button" onClick={onCancel}>
+          Cancel
+        </button>
       </div>
     </div>
   );
 }
 
-function formatMove(move) {
-  const files = 'abcdefgh';
-  const ranks = '87654321';
+/**
+ * Main Chess Board component
+ */
+export default function ChessBoard(props) {
+  const { G, ctx, moves } = props;
   
-  const fromSquare = files[move.from.col] + ranks[move.from.row];
-  const toSquare = files[move.to.col] + ranks[move.to.row];
-  
-  // Basic algebraic notation (simplified)
-  const pieceSymbol = move.piece === 'pawn' ? '' : move.piece.charAt(0).toUpperCase();
-  return `${pieceSymbol}${fromSquare}-${toSquare}`;
-}
-
-export function ChessBoard({ G, ctx, moves, playerID, isActive }) {
-  if (!G || !G.board) {
+  // Safety check: don't render if essential props are missing
+  if (!G || !ctx || !moves) {
+    console.log('Missing props:', { G: !!G, ctx: !!ctx, moves: !!moves, allProps: props });
     return <div>Loading...</div>;
   }
-
+  
+  const [promotionDialog, setPromotionDialog] = React.useState({
+    visible: false,
+    row: null,
+    col: null,
+    color: null
+  });
+  
+  // Check if a pawn needs promotion
+  React.useEffect(() => {
+    if (G.selectedSquare) {
+      const piece = G.board[G.selectedSquare.row][G.selectedSquare.col];
+      if (piece && piece.type === PIECES.PAWN) {
+        const promotionRow = piece.color === COLORS.WHITE ? 0 : 7;
+        // Check if any of the valid moves would result in promotion
+        const promotionMove = G.validMoves.find(move => move.row === promotionRow);
+        if (promotionMove) {
+          // Note: This is simplified - in a real implementation, you'd handle promotion
+          // after the move is made, not before
+        }
+      }
+    }
+  }, [G.selectedSquare, G.validMoves]);
+  
   const handleSquareClick = (row, col) => {
-    if (!isActive) return;
-    
-    // Use the selectSquare move which handles both selection and moving
-    moves.selectSquare(row, col);
+    // In pass-and-play mode, anyone can make moves for the current player
+    if (moves && moves.selectSquare) {
+      moves.selectSquare(row, col);
+    } else {
+      console.error('moves.selectSquare is not available. Props:', { G, ctx, moves, playerID });
+    }
   };
-
-  const selectedSquare = G.selectedSquare;
+  
+  const handlePromotion = (pieceType) => {
+    moves.promotePawn(promotionDialog.row, promotionDialog.col, pieceType);
+    setPromotionDialog({ visible: false, row: null, col: null, color: null });
+  };
+  
+  const cancelPromotion = () => {
+    setPromotionDialog({ visible: false, row: null, col: null, color: null });
+  };
+  
+  const renderBoard = () => {
+    const squares = [];
+    
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = G.board[row][col];
+        const isLight = (row + col) % 2 === 1;
+        const isSelected = G.selectedSquare && 
+                          G.selectedSquare.row === row && 
+                          G.selectedSquare.col === col;
+        const isValidMove = G.validMoves.some(move => 
+                           move.row === row && move.col === col);
+        const coordinate = coordsToAlgebraic(row, col);
+        
+        squares.push(
+          <ChessSquare
+            key={`${row}-${col}`}
+            piece={piece}
+            isLight={isLight}
+            isSelected={isSelected}
+            isValidMove={isValidMove}
+            isInCheck={false} // Simplified for now
+            onClick={() => handleSquareClick(row, col)}
+            coordinate={coordinate}
+          />
+        );
+      }
+    }
+    
+    return squares;
+  };
   
   return (
     <div className="chess-game">
       <div className="game-header">
-        <h2>Chess</h2>
+        <h1>Chess</h1>
         <GameStatus ctx={ctx} G={G} />
       </div>
       
-      <div className="game-layout">
-        <div className="board-section">
+      <div className="game-content">
+        <div className="board-container">
           <div className="chess-board">
-            {G.board.map((row, rowIndex) =>
-              row.map((piece, colIndex) => {
-                const isLight = (rowIndex + colIndex) % 2 === 0;
-                const isSelected = selectedSquare && 
-                  selectedSquare.row === rowIndex && 
-                  selectedSquare.col === colIndex;
-                const notation = getSquareNotation(rowIndex, colIndex);
-                
-                return (
-                  <ChessSquare
-                    key={`${rowIndex}-${colIndex}`}
-                    piece={piece}
-                    isLight={isLight}
-                    isSelected={isSelected}
-                    isValidMove={false} // Will be implemented with move validation
-                    onClick={() => handleSquareClick(rowIndex, colIndex)}
-                    notation={notation}
-                  />
-                );
-              })
-            )}
+            {renderBoard()}
           </div>
           
-          <div className="board-coordinates">
-            <div className="files">
-              {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(file => (
-                <span key={file} className="file-label">{file}</span>
+          <div className="board-labels">
+            <div className="rank-labels">
+              {[8, 7, 6, 5, 4, 3, 2, 1].map(rank => (
+                <div key={rank} className="rank-label">{rank}</div>
               ))}
             </div>
-            <div className="ranks">
-              {['8', '7', '6', '5', '4', '3', '2', '1'].map(rank => (
-                <span key={rank} className="rank-label">{rank}</span>
+            <div className="file-labels">
+              {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(file => (
+                <div key={file} className="file-label">{file}</div>
               ))}
             </div>
           </div>
         </div>
         
         <div className="game-sidebar">
-          <CapturedPieces G={G} />
           <MoveHistory G={G} />
-          
-          <div className="game-controls">
-            <button className="resign-button" onClick={() => {
-              if (window.confirm('Are you sure you want to resign?')) {
-                // In a real implementation, this would call a resign move
-                console.log('Player resigned');
-              }
-            }}>
-              Resign
-            </button>
-            
-            <button className="draw-button" onClick={() => {
-              // In a real implementation, this would offer/accept a draw
-              console.log('Draw offered');
-            }}>
-              Offer Draw
-            </button>
-          </div>
+          <CapturedPieces G={G} />
           
           <div className="game-info">
-            <div className="player-info">
-              <div className={`player ${ctx.currentPlayer === '0' ? 'active' : ''}`}>
-                <span className="player-color">♔</span>
-                <span className="player-name">White</span>
-              </div>
-              <div className={`player ${ctx.currentPlayer === '1' ? 'active' : ''}`}>
-                <span className="player-color">♚</span>
-                <span className="player-name">Black</span>
-              </div>
+            <div className="castling-rights">
+              <h4>Castling Rights</h4>
+              <div>White: K{G.castlingRights?.whiteKing ? '✓' : '✗'} Q{G.castlingRights?.whiteQueen ? '✓' : '✗'}</div>
+              <div>Black: K{G.castlingRights?.blackKing ? '✓' : '✗'} Q{G.castlingRights?.blackQueen ? '✓' : '✗'}</div>
             </div>
+            
+            {G.enPassantTarget && (
+              <div className="en-passant">
+                <h4>En Passant Target</h4>
+                <div>{G.enPassantTarget}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+      
+      <PromotionDialog
+        isVisible={promotionDialog.visible}
+        color={promotionDialog.color}
+        onPromote={handlePromotion}
+        onCancel={cancelPromotion}
+      />
     </div>
   );
 }
